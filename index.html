@@ -5,10 +5,74 @@
 	<style>
 		body {
 			font-family: Helvetica;
+			color: white;
+			
+			background-color: black;
 		}
 		svg {
 			width: 500px;
-			height:500px;
+			height:450px;
+			background-color: black;
+		}
+
+		.svg1 {
+			width: 700px;
+			height: 60px;
+			background-color: black;
+		}
+
+		.track {
+			stroke-opacity: 0.4;
+			stroke: #d8a059;
+			stroke-width: 12px;
+		}
+
+		.track-inset {
+			fill: none;
+			stroke: #d9be68;
+			stroke-width: 6px;
+		}
+
+		.track-overlay {
+			stroke: #ccc;
+			stroke-width: 40px;
+			stroke-opacity: 0;
+			cursor: pointer;
+		}
+
+		.ticks path {
+			display: none;
+		}
+
+		.ticks line {
+			stroke: #503c22;
+			fill: none;
+			stroke-width: 2px;
+		}
+
+		.ticks text {
+			font-size: 11px;
+		}
+
+		.slider-text {
+			fill: #fff;
+			font-size: 14px;
+		}
+		
+		.handle {
+			fill: #b36d68;
+			stroke: #422727;
+			stroke-width: 1px;
+		}
+
+		.track-overlay, .track, .track-inset {
+			stroke-linecap: round;
+		}
+
+		.year-label {
+			font-size: 80px;
+			fill: #fff;
+			opacity: 0.5;
 		}
 
 		.play-button {
@@ -19,7 +83,7 @@
 		}
 
 		.play-button:hover {
-			color: black;
+			color: grey;
 		}
 
 		.buttons-container {
@@ -29,17 +93,18 @@
 
 		.button {
 			padding: 10px 10px;
-			background-color: #c5c5c5;
-			border: 2px solid #f9f9f9;
+			background-color:grey;
+			border: 2px solid #4a4a4a;
 			text-align: center;
 			display: inline-block;
 			font-weight: lighter;
 			cursor:pointer;
 			border-radius: 2px;
+			color: black;
 		}
 
 		.button:hover {
-			background-color: #dadada;
+			background-color: lightgrey;
 
 		}
 
@@ -64,11 +129,23 @@
 		.clearfix {
 			clear: both;
 		}
-		.bar {
-			fill: DarkSlateBlue;
+		.stop-left {
+			stop-color: #b16969;
 		}
+		.stop-right {
+			stop-color: #dace70;
+		}
+
+		.stop-middle {
+			stop-color: #d8a059;
+		}
+
+		.bar {
+			fill: url(#mainGradient);
+		} 
+
 		rect:hover {
-			fill: DarkSlateBlue;
+			fill: url(#mainGradient);
 			opacity:0.5;
 		}
 		.axis path {
@@ -87,6 +164,7 @@
 		.y.axis text {
 			font-size: 13px;
 		} 
+
 	</style>
 </head>
 <body>
@@ -100,23 +178,25 @@
 
 	var margin = {top: 30, right: 0, bottom: 0, left: 100},
 		width = 500 - margin.left - margin.right,
-		height = 450 - margin.top - margin.bottom;
+		height = 450 - margin.top - margin.bottom,
+		range = [1950, 2050],
+		step = 5;
 
 	var body = d3.select("body")
 
-	var x = d3.scaleLinear()
+	var xScale = d3.scaleLinear()
 		.range([0,width]);
 
-	var y = d3.scaleBand()
+	var yScale = d3.scaleBand()
 		.range([0, height])
 		.paddingInner(0.2);
 
 	var xAxis = d3.axisTop()
-			.scale(x)
+			.scale(xScale)
 			.ticks(5, "%");
 
 	var yAxis = d3.axisLeft()
-			.scale(y);
+			.scale(yScale);
 
 	function keys(d) {
 		return d.age;
@@ -125,22 +205,15 @@
 	body.append("h2")
 			.text("Age distribution of the world");
 
-	var playAll = body.append("div")
-			.attr("class", "play-button")
-			.text("▶ PLAY ALL YEARS");
+	d3.csv("allData.csv")
+		.then(function(data){
+		var popData = data.filter(function(element) {return element.year == year});
 
-	var buttons = body.append("div")
-			.attr("class", "buttons-container")
-			.selectAll("div").data(buttonYears)
-		.enter().append("div")
-			.text(function(d) { return d; })
-			.attr("class", function(d) {
-				if(d == year)
-					return "button selected";
-				else
-					return "button";
-			});
-	
+		xScale.domain([0, d3.max(popData, function(element) {return element.value})]);
+
+		yScale.domain(popData.map(function(element) {return element.age}));
+
+
 	body.append("div")
 			.attr("class", "clearfix");
 
@@ -157,19 +230,35 @@
 	body.append("div")
 			.attr("class", "clearfix");
 
-	d3.csv("allData.csv")
-		.then(function(data){
-		var popData = data.filter(function(element) {return element.year == year});
-
-		x.domain([0, d3.max(popData, function(element) {return element.value})]);
-
-		y.domain(popData.map(function(element) {return element.age}));
-
 		var svg = body.append("svg")
 				.attr("width", width + margin.left + margin.right)
 				.attr("height", height + margin.top + margin.bottom)
 			.append("g")
 				.attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+		var label = svg.append("text")
+				.attr("class", "year-label")
+				.attr("text-anchor", "end")
+				.attr("y", 80)
+				.attr("x", width)
+				.text(1950);
+
+		var svgDefs = svg.append('defs')
+
+		var mainGradient = svgDefs.append('linearGradient')
+				.attr('id', 'mainGradient');
+
+		mainGradient.append('stop')
+				.attr('class', 'stop-left')
+				.attr('offset', '0%');
+
+		mainGradient.append('stop')
+				.attr('class', 'stop-middle')
+				.attr('offset', '50%');
+
+		mainGradient.append('stop')
+				.attr('class', 'stop-right')
+				.attr('offset', '100%')
 
 		var barGroup = svg.append("g")
 				.attr("class", "bar");
@@ -178,9 +267,9 @@
 				.data(popData, keys)
 			.enter().append("rect")
 				.attr("x", 0)
-				.attr("y", function(d) { return y(d.age) })
-				.attr("width", function(d) { return x(d.value) })
-				.attr("height", y.bandwidth());
+				.attr("y", function(d) { return yScale(d.age) })
+				.attr("width", function(d) { return xScale(d.value) })
+				.attr("height", yScale.bandwidth());
 			
 	svg.append("g")
 				.call(xAxis)
@@ -190,23 +279,112 @@
 				.call(yAxis)
 				.attr("class", "y axis")
 
-	buttons.on("click", function(d) {
-		update(d);
-		clearInterval(playInterval);
-	});
+	body.append("div")
+			.attr("class", "clearfix");
 
+	var svg1 = body.append("svg")
+			.attr("class", "svg1");
+
+	var sliderScale = d3.scaleLinear()
+			.domain(range)
+			.range([0, 600])
+			.clamp(true);
+
+	var slider = svg1.append("g")
+			.classed("slider", true)
+			.attr("transform", "translate(" + 25 + "," + margin.top + ")");
+
+	//array for step slider
+	var rangeValues = d3.range(range[0], range[1], step || 1).concat(range[1]);
+	var sliderAxis = d3.axisBottom(sliderScale).tickValues(rangeValues).tickFormat(function (d) { return d; });
+
+	sliderScale.clamp(true);
+	//drag behavior initialization
+	var drag = d3.drag()
+		.on('start.interrupt', function () { slider.interrupt();})
+		.on('start drag', function () { dragged(d3.event.x);
+		});
+
+	//main bar with a stroke
+	var track = slider.append('line')
+			.attr('class', 'track')
+			.attr("x1", sliderScale.range()[0])
+			.attr("x2", sliderScale.range()[1]);
+
+	//bar inside the track to make it look like a rectangle with a border
+	var trackInset = d3.select(slider.node().appendChild(track.node().cloneNode()))
+			.attr('class', 'track-inset');
+
+	var ticks = slider.append('g')
+			.attr('class', 'ticks')
+			.attr('transform', 'translate(0, 4)')
+			.call(sliderAxis);
+
+	//drag handle
+	var handle = slider.append('circle')
+		.classed('handle', true)
+			.attr('r', 8);
+
+	//overlay bar with transparent stroke that gives drag behavior to the slider
+	var trackOverlay = d3.select(slider.node().appendChild(track.node().cloneNode()))
+			.attr('class', 'track-overlay')
+			.call(drag);
+
+	body.append("div")
+			.attr("class", "clearfix");
+
+	var playAll = body.append("div")
+			.attr("class", "play-button")
+			.text("▶ PLAY ALL YEARS");
+	
 	var playInterval;
 
 	playAll.on("click", function() {
 		var i = 0;
-		playInterval = setInterval(function() {
-			update(buttonYears[i]);
-			i++;
-			if(i > buttonYears.length - 1) {
+		var playInterval = setInterval(function() {
+			dragged(sliderScale(buttonYears[i]));
+			i ++;
+			if(i > buttonYears.length -1) {
 				clearInterval(playInterval);
 			}
 		}, 700);
 	});
+
+	function dragged(value) {
+        var x = sliderScale.invert(value), index = null, midPoint, cx, xVal;
+        if(step) {
+            // if step has a value, compute the midpoint based on range values and reposition the slider based on the mouse position
+            for (var i = 0; i < rangeValues.length - 1; i++) {
+                if (x >= rangeValues[i] && x <= rangeValues[i + 1]) {
+                    index = i;
+                    break;
+                }
+            }
+            midPoint = (rangeValues[index] + rangeValues[index + 1]) / 2;
+            if (x < midPoint) {
+                cx = sliderScale(rangeValues[index]);
+                xVal = rangeValues[index];
+            } else {
+                cx = sliderScale(rangeValues[index + 1]);
+                xVal = rangeValues[index + 1];
+            }
+        } else {
+            // if step is null or 0, return the drag value as is
+            cx = sliderScale(x);
+            xVal = x.toFixed(3);
+        }
+        // use xVal as drag value
+        handle.attr('cx', cx);
+        label.text(xVal);
+
+        popData = data.filter(function(element) {return element.year == xVal});
+
+		bars.data(popData, keys)
+			.transition()
+			.duration(500)
+			.attr("width", function(d) {return  xScale(d.value); });
+
+    }
 
 	function update(updateYear) {
 		d3.select(".selected")
@@ -221,7 +399,7 @@
 		bars.data(popData, keys)
 			.transition()
 			.duration(500)
-			.attr("width", function(d) {return  x(d.value); });
+			.attr("width", function(d) {return  xScale(d.value); });
 	};
 	});
 
