@@ -10,7 +10,7 @@
 			background-color: black;
 		}
 		svg {
-			width: 500px;
+			width: 700px;
 			height:450px;
 			background-color: black;
 		}
@@ -127,6 +127,37 @@
 			fill: url(#mainGradient);
 			opacity:0.5;
 		}
+		.d3-tip {
+  			font-family: "Helvetica Neue";
+  			line-height: 0.5;
+  			font-weight: bold;
+  			padding: 10px;
+  			background: rgba(197, 197, 197, 0.8);
+  			color: #464646;
+  			border-radius: 2px;
+  			pointer-events: none;
+		}
+
+		/* Creates a small triangle extender for the tooltip */
+		.d3-tip:after {
+  			box-sizing: border-box;
+  			display: inline;
+  			font-size: 10px;
+  			width: 100%;
+  			line-height: 1;
+  			color: rgba(197, 197, 197, 0.8);
+  			position: absolute;
+  			pointer-events: none;
+		}
+
+		/* Eastward tooltips */
+		.d3-tip.e:after {
+  			content: "\25C0";
+  			margin: -4px 0 0 0;
+  			top: 50%;
+  			left: -5px;
+		}
+
 		.axis path {
 			display: none;
 		}
@@ -152,12 +183,13 @@
 </head>
 <body>
 <script src="https://d3js.org/d3.v5.min.js"></script>
+<script src="d3-tip.js"></script>
 
 <script>
-	var year = 2010;
+	var year = 1970;
 	var buttonYears = [1950, 1955, 1960, 1965, 1970, 1975, 1980, 1985, 1990, 1995, 2000, 2005, 2010, 2015, 2020, 2025, 2030, 2035, 2040, 2045, 2050];
 	var margin = {top: 30, right: 0, bottom: 0, left: 100},
-		width = 500 - margin.left - margin.right,
+		width = 550 - margin.left - margin.right,
 		height = 450 - margin.top - margin.bottom,
 		range = [1950, 2050],
 		step = 5;
@@ -196,11 +228,13 @@
 	
 	body.append("div")
 			.attr("class", "clearfix");
+
 		var svg = body.append("svg")
 				.attr("width", width + margin.left + margin.right)
 				.attr("height", height + margin.top + margin.bottom)
 			.append("g")
 				.attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
 		var label = svg.append("text")
 				.attr("class", "year-label")
 				.attr("text-anchor", "end")
@@ -221,6 +255,18 @@
 				.attr('offset', '100%')
 		var barGroup = svg.append("g")
 				.attr("class", "bar");
+
+	var format = d3.format(".2%");
+
+	var tip = d3.tip()
+			.attr("class", "d3-tip")
+			.direction("e")
+			.offset([0, 5])
+			.html(function(d) {
+				return "<p><strong>" + d.age + "</strong></p><p><strong>Proportion: </strong>" + format(d.value) + "</p>";
+			})
+
+	svg.call(tip);
 	
 	var bars = barGroup.selectAll("rect")
 				.data(popData, keys)
@@ -228,8 +274,10 @@
 				.attr("x", 0)
 				.attr("y", function(d) { return yScale(d.age) })
 				.attr("width", function(d) { return xScale(d.value) })
-				.attr("height", yScale.bandwidth());
-			
+				.attr("height", yScale.bandwidth())
+				.on("mouseover", tip.show)
+				.on("mouseout", tip.hide);
+
 	svg.append("g")
 				.call(xAxis)
 				.attr("class", "x axis")
